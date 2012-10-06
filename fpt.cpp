@@ -1,4 +1,8 @@
-/* fpt.c
+/* fpt.cpp
+ *
+ * Rui Tong
+ * Department of Computer Science
+ * San Jose State University
  *
  * Program Input:
  *	A configuration file consisting of 6 parameters
@@ -23,6 +27,8 @@
 #include<vector>
 #include<sstream>
 #include<iostream>
+#include<math.h>
+#include<map>
 using namespace std;
 /***** Data Structure *****/
 /* Description:
@@ -94,6 +100,7 @@ char outFile[100];		/* File name to store the result of mining */
 static int total_leaf_node = 0; /*test_tree use*/
 int branch_i = 0;		/*test_tree use*/
 int branch_j = 0;		/*test_tree use*/ 
+map <string, int> m1;
 /******************************************************************************************
  * Function: destroyTree
  *
@@ -822,9 +829,9 @@ void input(char *configFile)
  *	will be used later
  *
  */
-void show_time(){
+void show_time(int i){
 	int time1=clock()/CLOCKS_PER_SEC;
-	printf("time1: %u secs.\n", time1);
+	printf("time %d: %u secs.\n", i, time1);
 }
 
 /******************************************************************************************
@@ -867,10 +874,22 @@ void test_tree(FPTreeNode snode, vector<string> & (* f)(int* p, int index, vecto
 			pnode = pnode->parent;
 		}
 		v_combine = combine_string(pp, loop-1, v_combine);
-		for(vector<string>::iterator jj = v_combine.begin();jj<v_combine.end();jj++)
-		{
-			cout<<"vector: "+ *jj<<endl;
-		}
+		//create another vector to store the number
+		//map<string, int>::iterator mpp;
+		//for(vector<string>::iterator jj = v_combine.begin();jj<v_combine.end();jj++)
+		//{
+		//	//cout<<"vector: "+ *jj<<endl;
+		//	mpp = m1.find(*jj);
+		//	if(mpp == m1.end())//not found
+		//	{
+		//		m1.insert ( make_pair(*jj, 1 ) );
+		//	}
+		//	else
+		//	{
+		//		mpp->second++;
+		//	}
+
+		//}
 	}
 }
 /******************************************************************************************
@@ -903,9 +922,11 @@ vector<string> & combine_string(int * p, int index, vector<string> & v)
 		out << i;
 		s = out.str();
 		////////
-		for(int n=0;n<2*index-1;n++)
+		for(int n=0;n<(int)(pow(2.0, index)-1);n++)
 		{
-			v.push_back(v.at(n)+" "+s);
+			string t = v.at(n)+" "+s;
+			v.push_back(t);
+			//m1.insert ( make_pair(t, 10 ) );
 		}
 		v.push_back(s);
 		return v;
@@ -989,7 +1010,7 @@ void main(int argc, char *argv[])
 {
  //float time1, time2, time3;
  int headerTableSize;
-
+ int totaloverlap=0;
  /* Usage ------------------------------------------*/
  printf("\nFP-tree: Mining large itemsets using user support threshold\n\n");
  if (argc != 2) {
@@ -1016,11 +1037,13 @@ void main(int argc, char *argv[])
  if (numLarge[0] > 0) {
 	/* create FP-tree --------------------------*/
  	printf("\nbuildTree\n");
+	show_time(1);
  	buildTree();
 
 	/*iterate through the branches:*/
+	show_time(2);
 	test_tree(root, combine_string);
-
+	show_time(3);
 	printf("total leaf number: %d", total_leaf_node);
 	
 	
@@ -1033,6 +1056,13 @@ void main(int argc, char *argv[])
 
  	/* output result of large itemsets ---------*/
  	printf("\nresult\n");
+	map<string, int>::iterator ii = m1.begin();
+	while(ii != m1.end())
+	{
+		totaloverlap++;
+		ii++;
+	}
+	cout<<"map size: "<<m1.size();
  	//displayResult();
  }
 
