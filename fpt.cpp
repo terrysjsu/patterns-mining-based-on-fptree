@@ -29,6 +29,7 @@
 #include<iostream>
 #include<math.h>
 #include<map>
+#include <fstream>
 using namespace std;
 /***** Data Structure *****/
 /* Description:
@@ -98,9 +99,9 @@ char dataFile[100];		/* File name of the database */
 char outFile[100];		/* File name to store the result of mining */
 
 static int total_leaf_node = 0; /*test_tree use*/
-int branch_i = 0;		/*test_tree use*/
-int branch_j = 0;		/*test_tree use*/ 
 map <string, int> m1;
+ofstream myfile;
+int tmpusecount = 0;
 /******************************************************************************************
  * Function: destroyTree
  *
@@ -830,8 +831,8 @@ void input(char *configFile)
  *
  */
 void show_time(int i){
-	int time1=clock()/CLOCKS_PER_SEC;
-	printf("time %d: %u secs.\n", i, time1);
+	float time1=(float)clock()/CLOCKS_PER_SEC;
+	printf("time %d: %.4f secs.\n", i, time1);
 }
 
 /******************************************************************************************
@@ -842,55 +843,95 @@ void show_time(int i){
  */
 void test_tree(FPTreeNode snode, vector<string> & (* f)(int* p, int index, vector<string> & v)){ // this is to find all the branches based on leaf-nodes
 	FPTreeNode pnode = snode;
-	vector<string> & (*combine_string)(int* p, int index, vector<string> & v) = f;
+	vector<string> & (*non_recursive)(int* p, int index, vector<string> & v) = f;
 	if(pnode->children){
 			//printf("%d\n", pnode->children->node->item);
 			//test_tree(pnode->children->node); //this is depth first
 		while(pnode->children){ //this is also depth first
-			test_tree(pnode->children->node, combine_string);
+			test_tree(pnode->children->node, non_recursive);
 			pnode->children = pnode->children->next;
 		}
 	}
 	else{
 		total_leaf_node++;
-		printf("this is leaf: %d, count: %d\n", pnode->item, pnode->count);
-		branch_i++;
-		branch_j = 0;
-
-		///////////////////
-		vector<string> v_combine;
-		int length_of_branch = 0; 
-		FPTreeNode tmp = pnode;
-		while(tmp!=root)//get the length of each branch
-		{
-			length_of_branch++;
-			tmp = tmp->parent;
-		}
-		int * pp = (int *)malloc(sizeof(int)*length_of_branch);//int array store items in one branch
-		int loop = length_of_branch;
+		int i=0;
+		//printf("this is leaf: %d, count: %d, ", pnode->item, pnode->count);
+		//myfile<<pnode->count<<" ";
 		while(pnode!=root)
 		{
-			pp[--length_of_branch] = pnode->item;
+			i++;
 			pnode = pnode->parent;
 		}
-		v_combine = combine_string(pp, loop-1, v_combine);
-		//create another vector to store the number
-		//map<string, int>::iterator mpp;
-		//for(vector<string>::iterator jj = v_combine.begin();jj<v_combine.end();jj++)
+		if(i==14)
+		{
+			tmpusecount++;
+		}
+		//myfile<<endl;
+		///////////////////
+		//vector<string> v_combine;
+		//int length_of_branch = 0; 
+		//FPTreeNode tmp = pnode;
+		//while(tmp!=root)//get the length of each branch
 		//{
-		//	//cout<<"vector: "+ *jj<<endl;
-		//	mpp = m1.find(*jj);
-		//	if(mpp == m1.end())//not found
-		//	{
-		//		m1.insert ( make_pair(*jj, 1 ) );
-		//	}
-		//	else
-		//	{
-		//		mpp->second++;
-		//	}
-
+		//	length_of_branch++;
+		//	tmp = tmp->parent;
 		//}
+		//int * pp = (int *)malloc(sizeof(int)*length_of_branch);//int array store items in one branch
+		//int loop = length_of_branch;
+		//while(pnode!=root)
+		//{
+		//	pp[--length_of_branch] = pnode->item;
+		//	pnode = pnode->parent;
+		//}
+
+		///*non-recursive combination*/
+		//vector<string> non_v;
+		//vector<string> tmp_v= non_recursive(pp, loop, non_v);
+
+		//v_combine = combine_string(pp, loop-1, v_combine);/*recursive combination*/
+
+		//create another vector to store the number
+		/*output combination on every branch*/
+		/*for(vector<string>::iterator jj = tmp_v.begin();jj<tmp_v.end();jj++)
+		{
+			cout<<*jj<<endl;
+		}*/
 	}
+}
+/******************************************************************************************
+ *Function: non_recursive()
+ *
+ *Description:
+ * combination without recursive
+ */
+vector<string> & non_recursive(int * p, int size, vector<string>& v)
+{
+		std::string s;
+		std::stringstream out;
+		out << p[0];
+		s = out.str();
+		v.push_back(s);
+		
+	for(int i=1;i<size;i++)
+	{
+		vector<string> tmp;
+		std::string s;
+		std::stringstream out;
+		out << p[i];
+		s = out.str();
+		//
+		for(vector<string>::iterator iter = v.begin(); iter != v.end(); iter++)
+		{
+			tmp.push_back(*iter + " " + s);
+		}
+		tmp.push_back(s);
+		for(vector<string>::iterator iter = tmp.begin(); iter != tmp.end(); iter++)
+		{
+			v.push_back(*iter);
+		}
+		
+	}
+	return v;
 }
 /******************************************************************************************
  *Function: combine_string(FPTreeNode pnode)
@@ -926,7 +967,7 @@ vector<string> & combine_string(int * p, int index, vector<string> & v)
 		{
 			string t = v.at(n)+" "+s;
 			v.push_back(t);
-			//m1.insert ( make_pair(t, 10 ) );
+			//m1.insert ( make_pair(t, 10 ) ); 
 		}
 		v.push_back(s);
 		return v;
@@ -1039,21 +1080,21 @@ void main(int argc, char *argv[])
  	printf("\nbuildTree\n");
 	show_time(1);
  	buildTree();
-
+	////////////////////////////////////////////////////////////////////
+	myfile.open ("output.txt");
+	/////////////////////////////////////////
 	/*iterate through the branches:*/
 	show_time(2);
-	test_tree(root, combine_string);
+	test_tree(root, non_recursive);
+	//myfile.close();
 	show_time(3);
 	printf("total leaf number: %d", total_leaf_node);
-	
 	
 	/* mining frequent patterns ----------------*/
  	printf("\npassK\n");
 	headerTableSize = numLarge[0];
 	numLarge[0] = 0;
  	//FPgrowth(root, headerTableLink, headerTableSize, NULL, 0);
-
-
  	/* output result of large itemsets ---------*/
  	printf("\nresult\n");
 	map<string, int>::iterator ii = m1.begin();
@@ -1065,9 +1106,16 @@ void main(int argc, char *argv[])
 	cout<<"map size: "<<m1.size();
  	//displayResult();
  }
-
  /* free memory ------------------------------------*/
  printf("\ndestroy\n");
+ cout<<"total: "<<tmpusecount<<endl;
+ cout<<"<---------------new comparsion---------------->:"<<endl;
+ int a[20] = {1,2};
+ vector<string> vect;
+ show_time(4);
+ vector<string> result = non_recursive(a, 2, vect);
+ cout<<"done\n";
+ show_time(5);
  destroy();
 
  return;
