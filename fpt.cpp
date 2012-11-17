@@ -29,7 +29,9 @@
 #include<iostream>
 #include<math.h>
 #include<map>
+#include<hash_map>
 #include <fstream>
+#include <algorithm>
 using namespace std;
 /***** Data Structure *****/
 /* Description:
@@ -64,11 +66,12 @@ typedef struct FPnode {
 			           rooted at this node.  It is used to
 				   check whether there is only a single path 
 				   in the FPgrowth function. */
+
+	int numChildren;/*new added: for count of node's childre*/
+
 	FPTreeNode parent;	/* Pointer to parent node */
         childLink children;	/* Pointer to children */
         FPTreeNode hlink;	/* Horizontal link to next node with same item */
-
-		vector<std::string> * nodeVector;
 } FPNode;
 
 
@@ -98,7 +101,11 @@ int numItem;			/* Number of items in the database */
 int numTrans;			/* Number of transactions in the database */
 char dataFile[100];		/* File name of the database */
 char outFile[100];		/* File name to store the result of mining */
-
+int totalItemInMap = 0;
+string abcd = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890!@?#$%^&*()_+:>";
+map<string, int> mp;
+map<string, int>::iterator mapit;
+list<FPTreeNode> myList;
 /******************************************************************************************
  * Function: destroyTree
  *
@@ -128,7 +135,6 @@ void destroyTree(FPTreeNode& node)
  }
 
  free(node);
-
  return;
 }
 
@@ -444,8 +450,11 @@ void insert_tree(int *freqItemP, int *indexList, int count, int ptr, int length,
 	newNode->node->parent = T;
 	newNode->node->children = NULL;
 	newNode->node->hlink = NULL;
-	newNode->node->nodeVector = new vector<string>();
 	newNode->next = NULL;
+	if(newNode->node->parent->numChildren <0)
+		newNode->node->parent->numChildren = 1;
+	else
+		newNode->node->parent->numChildren++;
 	T->children = newNode;
 
 	/* Link the node to the header table */
@@ -495,8 +504,11 @@ void insert_tree(int *freqItemP, int *indexList, int count, int ptr, int length,
 		newNode->node->parent = T;
 		newNode->node->children = NULL;
 		newNode->node->hlink = NULL;
-		newNode->node->nodeVector = new vector<string>();
 		newNode->next = NULL;
+		if(newNode->node->parent->numChildren <0)
+			newNode->node->parent->numChildren = 1;
+		else
+			newNode->node->parent->numChildren++;
 		previous->next = newNode;
 
 		/* Link the node to the header table */
@@ -705,7 +717,6 @@ void buildTree(FPTreeNode& root)
  root->parent = NULL;
  root->children = NULL;
  root->hlink = NULL;
- root->nodeVector = NULL;
 
  /* Create freqItemP to store frequent items of a transaction */
  freqItemP = (int *) malloc (sizeof(int) * numItem);
@@ -831,10 +842,138 @@ void input(char *configFile)
  *
  */
 void show_time(int i){
-	float time1=(float)clock()/CLOCKS_PER_SEC;
-	printf("time %d: %.4f secs.\n", i, time1);
+	float time=(float)clock()/CLOCKS_PER_SEC;
+	printf("time %d: %.4f secs.\n", i, time);
 }
+/******************************************************************************************
+ *Function: combination(string s) and totalcombs()
+ *
+ *Description: fastest combination using string
+ *	
+ */
+int totalcombs(int n, int r){
+	int c=1;
+	if (r > n) return 0;
+	for (int d=1; d <= r; d++) {
+		c *= n--;
+		c /= d;
+	}
+	return c;
+}
+void combination(string alpha, int cc, vector<string> & vstr)
+{
+	//ofstream myfile(filename);
+	//stringstream sout;
+	string s;//string is recycle use, so clear it after use in loops: s.clear();
+	vector<int> indx;
+	int n = alpha.length();
+	int j=1;
+	int k=n;
+	int count = cc;
+	int r;
+	bool done;
+	//hash_map<string,int>::iterator it;
+	for(int twk=j;twk<=k;twk++){
+		r=twk;
+		done=true;
+		for(int iwk=0;iwk<r;iwk++)
+			indx.push_back(iwk);
+		while(done){
+			done=false;
+			for(int owk=0;owk<r;owk++){
+				s.append(1, alpha[indx[owk]]);
+				//myfile<<alpha[indx[owk]];
+			}
+			//myfile<<"\n";
+			totalItemInMap++; 
+			vstr.push_back(s);
+			s.clear();//reuse the string
+			//mp.insert(make_pair<string,int>(s,count));
+				for(int iwk=r-1;iwk>=0;iwk--){
+				if(indx[iwk]<=(n-1)-(r-iwk)){
+					indx[iwk]++;
+					for(int swk=iwk+1;swk<r;swk++){
+						indx[swk]=indx[swk-1]+1;
+					}
+					iwk=-1;
+					done=true;
+				}	
+			}
+		}
+		//myfile << "\n--------------------------- " << endl;
+		//myfile<<sout.str();
+		indx.clear();
+	}
+	//myfile.close();
+}
+/******************************************************************************************
+ *Function: combination_node(string s)
+ *
+ *Description: fastest combination using string
+ *	
+ */
+void combination_node(FPTreeNode pnode, int cc, map<string, int> & mp)
+{
+	if(cc<1)
+		return;
+	//by node, form a string alpha first
+	string alpha;
+	FPTreeNode t = pnode;
+	while(t->item >0)//from leaf to root into a vector, then combination the vector
+	{
+		alpha.append(1, abcd[t->item]);
+		t->count -= cc;
+		t = t->parent;
+	}
+	//cout<<pnode->item<<" combintation: "<<alpha<<" count: "<<cc<<endl;
 
+
+	string s;//string is recycle use, so clear it after use in loops: s.clear();
+	vector<int> indx;
+	int n = alpha.length();
+	int j=1;
+	int k=n;
+	int count = cc;
+	int r;
+	bool done;
+	for(int twk=j;twk<=k;twk++){
+		r=twk;
+		done=true;
+		for(int iwk=0;iwk<r;iwk++)
+			indx.push_back(iwk);
+		while(done){
+			done=false;
+			for(int owk=0;owk<r;owk++){
+				s.append(1, alpha[indx[owk]]);
+				//myfile<<alpha[indx[owk]];
+			}
+			//insert into map:
+			if((mapit = mp.find(s)) == mp.end())
+			{
+				mp.insert(make_pair(s,cc));
+			}
+			else
+			{
+				mapit->second += cc;
+			}
+			
+			totalItemInMap++; 
+
+			s.clear();//reuse the string
+				for(int iwk=r-1;iwk>=0;iwk--){
+				if(indx[iwk]<=(n-1)-(r-iwk)){
+					indx[iwk]++;
+					for(int swk=iwk+1;swk<r;swk++){
+						indx[swk]=indx[swk-1]+1;
+					}
+					iwk=-1;
+					done=true;
+				}	
+			}
+		}
+		indx.clear();
+	}
+}
 /******************************************************************************************
  *Function: test_tree()
  *
@@ -844,196 +983,166 @@ void show_time(int i){
 void test_tree(FPTreeNode pnode){ // this is to find all the branches based on leaf-nodes
 	childLink link = pnode->children;
 	while(link){ //depth first
-			//access the node "pnode->childre->node" below
-		FPTreeNode p = link->node;
-		//cout<<"current node: "<<link->node->item<<endl;
-		/*change int item to string*/
-		std::string s;
-		std::stringstream out;
-		out << p->item;
-		s = out.str();
-		//
-		FPTreeNode t = p->parent;
-		while(t->item >0) //copy all the parents' vector and append s to each of them
-		{
-			for(vector<string>::iterator ii = t->nodeVector->begin();ii<t->nodeVector->end();ii++)
-			{
-				p->nodeVector->push_back((*ii)+" "+s);
-			}
-			t = t->parent;
-		}
+
 		test_tree(link->node);//depth first recursive
 		link = link->next;
 		}
 }
 /******************************************************************************************
- *Function: output(FPTreeNode p)
+ *Function: loop_same_items()
  *
- *Description:
- * output all combinations
- */
-void output(FPTreeNode pnode)
-{
-	childLink link = pnode->children;
-	while(link)
-	{
-		for(vector<string>::iterator ii = link->node->nodeVector->begin();ii<link->node->nodeVector->end();ii++)
-		{
-			cout<<"vector:"<<(*ii)<<endl;
-		}
-		output(link->node);
-		link = link->next;
-	}
-}
-/******************************************************************************************
- *Function: non_recursive()
+ *Description: loop down-top to do combination
+ *Data Structure used: headerTableLink[]
  *
- *Description:
- * combination without recursive
  */
-vector<string> & non_recursive(int * p, int size, vector<string>& v)
+void loop_same_items()
 {
-		std::string s;
-		std::stringstream out;
-		out << p[0];
-		s = out.str();
-		v.push_back(s);
-		
-	for(int i=1;i<size;i++)
+	int size = numLarge[0];
+	//array of vector string
+	vector<string> *vstr = new vector<string>[numLarge[0]];
+	for(int i =0;i<size;i++)
 	{
-		vector<string> tmp;
-		std::string s;
-		std::stringstream out;
-		out << p[i];
-		s = out.str();
-		//
-		for(vector<string>::iterator iter = v.begin(); iter != v.end(); iter++)
+		//////do the pruning first, using map and count
+		FPTreeNode p = headerTableLink[i];//p is used to access the same name item link
+		//create a file here
+		map<char, int> mpcount;
+		//std::string filename;
+		//std::stringstream out;
+		//out << i;
+		//filename = out.str();
+		while(p)//for each same name item, go from down to top to access parents and form a string for combination
 		{
-			tmp.push_back(*iter + " " + s);
-		}
-		tmp.push_back(s);
-		for(vector<string>::iterator iter = tmp.begin(); iter != tmp.end(); iter++)
-		{
-			v.push_back(*iter);
-		}
-		
-	}
-	return v;
-}
-/******************************************************************************************
- *Function: combine_string(FPTreeNode pnode)
- *
- *Description:
- * combination starts from leaf node.
- */
-vector<string> & combine_string(int * p, int index, vector<string> & v)
-{
-	if(index == 0)
-	{	
-			/////this is for convert int to string
-		int i = p[index];
-		std::string s;
-		std::stringstream out;
-		out << i;
-		s = out.str();
-			/////
-		v.push_back(s);
-		return v;
-	}
-	else
-	{
-		v = combine_string(p, index-1, v);
-			///////this is for convert int to string
-		int i = p[index];
-		std::string s;
-		std::stringstream out;
-		out << i;
-		s = out.str();
-		////////
-		for(int n=0;n<(int)(pow(2.0, index)-1);n++)
-		{
-			string t = v.at(n)+" "+s;
-			v.push_back(t);
-			//m1.insert ( make_pair(t, 10 ) ); 
-		}
-		v.push_back(s);
-		return v;
-	}
-}
-
-/******************************************************************
-*/
-char ** read_file_and_display(int a, int b)
-{
-	printf("numTrans: %d, numItem: %d\n", a, b);
-	//////-------------------------------------    pp is 2-D array
-	char ** pp = (char **)malloc(sizeof(char) * a); 
-	if(pp == NULL){
-		printf("not enough space\n");
-		exit(0);
-	}
-	for(int i = 0;i< a;i++){
-		pp[i] = (char *)malloc(sizeof(char) * b);
-		if(pp == NULL)
-			printf("not enough space\n");
-	}
-
-	for(int k=0;k<a;k++){
-		memset(pp[k], 0 , b);
-	}
-	///////////////////////this is generate for and array
-	//int * branch = (int *)malloc(sizeof(int)*numItem);
-	//memset(branch, 0, numItem);
-	/////////////////////////////////////////////////////
-	char line[200];
-	int i=0;
-	int j;
-	
-	FILE * fp = fopen(dataFile, "r");
-	if(fp == NULL)
-	{
-		printf("can't open the file\n");
-	}
-	else
-	{
-		while(fgets(line, 200, fp) != NULL)
-		{
-			//puts(line);
-			char * p = strtok(line, " ");
-			p = strtok (NULL, " ");
-			while (p != NULL)
+			FPTreeNode t = p->parent;// t is used to access parents nodes
+			int pcount = p->count;
+			while(t->item >0)//!!!make it larger than 0, means escape root, because root's item is a minus number
 			{
-				//j = *p-'0'; //only for single number, not for double, such as 12, 23 etc.
-				j = atoi(p);
-				//printf ("%d\n",j);
-				p = strtok (NULL, " ");
-				pp[i][j] = 1;
+				char name = abcd[t->item];
+				//s.append(1,abcd[t->item]);
+				if(mpcount.find(name) != mpcount.end())//found, then update count
+				{
+					mpcount[name] += pcount;
+				}
+				else //not found
+				{
+					mpcount.insert(make_pair(name, pcount));
+				}
+				t = t->parent;
 			}
-			i++;
 		}
-	}
-	fclose(fp);
-	return pp;
+			/*combination(s, 1,vstr[i]);
+			sort(vstr[i].begin(), vstr[i].end());*/
+			//:store the string in a vector, then combination
+			//cout<<abcd[p->item]<<"--->"<<s<<endl;
+			//s.clear();
+			/////////////////////////////////////////////////////////////////////////////do the combination
+		p = headerTableLink[i];//p is used to access the same name item link
+		string s;
+		while(p)//for each same name item, go from down to top to access parents and form a string for combination
+		{
+			FPTreeNode t = p->parent;// t is used to access parents nodesb
+			while(t->item >0)//!!!make it larger than 0, means escape root, because root's item is a minus number
+			{
+				if(mpcount[abcd[t->item]] >= threshold)//
+				{
+					s.append(1,abcd[t->item]);
+				}
+				t = t->parent;
+			}
+			combination(s, 1, vstr[i]);
+			sort(vstr[i].begin(), vstr[i].end());
+			/////////////////////////////////////////////////////////////////////////////
+			vstr[i].clear();
+			p = p->hlink;
+		}
+		mpcount.clear();
+	}//for loop end
 }
 /******************************************************************************************
  * Function: vect_ini(FPTreeNode p)
  *
  * Description: initial all the nodes
  */
-FPTreeNode vect_ini(FPTreeNode p)
+void vect_ini(FPTreeNode p)
 {
 	childLink link = p->children;
-	while(link)
-	{
-		std::string s;
-		std::stringstream out;
-		out << link->node->item;
-		s = out.str();
-		link->node->nodeVector->push_back(s);
-		vect_ini(link->node);//this is to initialize all nodes
-		link = link->next;
+	if(link){
+		while(link)
+		{
+			//access the node from here: link->node
+			vect_ini(link->node);
+			link = link->next;
+		}
 	}
-	return p;
+	else //find the leaf nodes
+	{
+		FPTreeNode t = p;//t is for leaf node use only
+		int cc = t->count;
+		string str;
+
+		FPTreeNode s = t;//s is for leaf combination use only
+		combination_node(s,s->count,mp);
+
+		while(t->item >0)//from leaf to root into a vector, then combination the vector
+		{
+			//str.append(1, abcd[t->item]);
+			FPTreeNode r = t;
+
+			if(r->count < r->parent->count)//the branch number is larger
+			{
+				combination_node(r->parent,r->parent->count,mp);
+			}
+			//cout<<"---------"<<r->item<<" count: "<<r->count<<endl;
+
+
+			t = t->parent;
+		}
+		//combination(str, cc);
+		//cout<<endl;
+	}
+}
+/******************************************************************************************
+ * Function: init_list(FPTreeNode p)
+ *
+ * Description: initial the leaf nodes
+ */
+void init_list(FPTreeNode p)
+{
+	childLink link = p->children;
+	if(link){
+		while(link)
+		{
+			//access the node from here: link->node
+			init_list(link->node);
+			link = link->next;
+		}
+	}
+	else //find the leaf nodes
+	{
+		myList.push_back(p);
+	}
+}
+/******************************************************************************************
+ * Function: traverse_list(FPTreeNode p)
+ *
+ * Description: initial all the nodes
+ */
+void traverse_list(list<FPTreeNode> & myList, FPTreeNode & root)
+{
+	list<FPTreeNode>::iterator lit;
+	for (lit = myList.begin(); lit != myList.end(); lit++ )
+	{
+		if((*lit)->parent != root)
+		{
+		if((*lit)->parent->numChildren == 1)
+			myList.push_back((*lit)->parent);
+		else
+			(*lit)->parent->numChildren--;
+		}
+		//combination here
+		combination_node(*lit, (*lit)->count, mp);
+		//cout<<(*lit)->item<<endl;
+		
+	}
 }
 /******************************************************************************************
  * Function: main
@@ -1088,15 +1197,21 @@ void main(int argc, char *argv[])
 	show_time(1);
  	buildTree(root);
 	show_time(2);
-	vect_ini(root);
-	test_tree(root);
-	//output(root);
+	/*<--------------------------------------start from here--------------------------------------->*/
 	show_time(3);
+
+	init_list(root);
+	traverse_list(myList, root);
+	//vect_ini(root);
+	//for(mapit = mp.begin();mapit != mp.end();mapit++)
+	//{
+	//	cout<<mapit->first<<" : "<<mapit->second<<endl;
+	//}
+	show_time(4);
+	//cout<<"total: "<<totalItemInMap<<endl;
+	///////////////////////////
  }
- cout<<"<---------------new comparsion---------------->:"<<endl;
-
  destroy(root);
-
  return;
 }
 
