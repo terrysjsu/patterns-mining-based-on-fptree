@@ -1,8 +1,6 @@
 /* fpt.cpp
  *
- * Rui Tong
- * Department of Computer Science
- * San Jose State University
+ * This is a unfinished job, waited for 3 years already
  *
  * Program Input:
  *	A configuration file consisting of 6 parameters
